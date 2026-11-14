@@ -8,15 +8,9 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="iChat AI">
   <meta name="description" content="iChatAI, but on device">
-  <meta name="keywords" content="ichat ai, debugofthe67, tp67, ichatapp">
-  <meta name="robots" content="index, follow">
-  <!-- Framework7 v9 & Icons -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/framework7@9.3.0/framework7-bundle.min.css" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/framework7-icons@5.0.5/css/framework7-icons.css" />
-  <!-- Marked.js for Markdown parsing -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-  <link rel="apple-touch-icon" href="https://ichatai.up.railway.app/static/icon.png">
-  <link rel="icon" type="image/x-icon" href="https://ichatai.up.railway.app/static/icon.png">
   <style>
     :root {
       --siri-gradient: linear-gradient(135deg, #ff2d55, #af52de, #5856d6, #0a84ff, #30d158);
@@ -25,9 +19,10 @@
     body {
       background: #000000;
       color: #ffffff;
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
 
-    /* Windows Vista Aurora Live Background Canvas */
     #aurora-canvas {
       position: fixed;
       inset: 0;
@@ -39,7 +34,7 @@
       transition: opacity 0.8s ease;
     }
     body.aurora-active #aurora-canvas {
-      opacity: 0.75;
+      opacity: 0.85;
     }
 
     #app, .view, .page {
@@ -58,7 +53,6 @@
       z-index: 1;
     }
 
-    /* Animated iChat Edge Glow during generation */
     .page-content::before {
       content: "";
       position: fixed;
@@ -84,7 +78,6 @@
       100% { background-position: 0% 50%; }
     }
 
-    /* Orb Avatar */
     .siri-orb {
       width: 24px;
       height: 24px;
@@ -103,7 +96,6 @@
       box-shadow: 0 0 28px rgba(175, 82, 222, 0.7);
     }
 
-    /* Microphone Button States (Red when listening, normal when off) */
     .mic-btn {
       color: inherit;
       transition: color 0.2s ease;
@@ -118,7 +110,6 @@
       100% { transform: scale(1); opacity: 1; }
     }
 
-    /* Model Dropdown in Navbar */
     .model-select-wrapper {
       display: inline-flex;
       align-items: center;
@@ -144,7 +135,6 @@
       color: #ffffff;
     }
 
-    /* Message Bubbles & Markdown */
     .message-sent .message-bubble {
       background: linear-gradient(135deg, #0a84ff, #5856d6) !important;
       color: #ffffff !important;
@@ -171,7 +161,6 @@
       margin-top: 6px;
     }
 
-    /* Attachment Preview Bar */
     #attachment-preview {
       display: none;
       align-items: center;
@@ -188,7 +177,6 @@
       border-radius: 4px;
     }
 
-    /* Empty Welcome State */
     .empty-state {
       text-align: center;
       padding: 64px 24px 20px;
@@ -209,7 +197,6 @@
       margin-top: 12px;
     }
 
-    /* Sidebar Thread List */
     .thread-item {
       display: flex;
       align-items: center;
@@ -231,11 +218,9 @@
   </style>
 </head>
 <body class="dark">
-  <!-- Windows Vista Aurora Live Background Canvas -->
   <canvas id="aurora-canvas"></canvas>
 
   <div id="app">
-    <!-- Left Sidebar Panel: Settings & Conversations -->
     <div class="panel panel-left panel-cover panel-init">
       <div class="view">
         <div class="page">
@@ -248,11 +233,10 @@
           <div class="page-content">
             <div class="list inset strong">
               <ul>
-                <!-- Aurora Live BG Toggle -->
                 <li>
                   <div class="item-content">
                     <div class="item-inner">
-                      <div class="item-title">Windows Vista Aurora BG</div>
+                      <div class="item-title">Aurora Live Background</div>
                       <div class="item-after">
                         <label class="toggle toggle-init" id="aurora-toggle">
                           <input type="checkbox" id="aurora-checkbox" checked />
@@ -262,7 +246,6 @@
                     </div>
                   </div>
                 </li>
-                <!-- Voice Read Aloud Toggle -->
                 <li>
                   <div class="item-content">
                     <div class="item-inner">
@@ -291,10 +274,8 @@
       </div>
     </div>
 
-    <!-- Main Chat View -->
     <div class="view view-main view-init">
       <div class="page">
-        <!-- Top Navigation Bar -->
         <div class="navbar">
           <div class="navbar-bg"></div>
           <div class="navbar-inner">
@@ -308,10 +289,9 @@
               <div class="model-select-wrapper">
                 <span class="siri-orb"></span>
                 <select id="model-selector" class="model-select" aria-label="Select AI Model">
-                  <option value="onnx-community/gemma-3-270m-it-ONNX" data-dtype="q4">Gemma 3 270M (Fast)</option>
-                  <option value="onnx-community/gemma-3-1b-it-ONNX" data-dtype="q4">Gemma 3 1B (Smart)</option>
-                  <option value="HuggingFaceTB/SmolLM2-360M-Instruct" data-dtype="q4">SmolLM2 360M</option>
+                  <option value="HuggingFaceTB/SmolLM2-360M-Instruct" data-dtype="q4">SmolLM2 360M (Stable)</option>
                   <option value="onnx-community/Qwen2.5-0.5B-Instruct" data-dtype="q4">Qwen 2.5 0.5B</option>
+                  <option value="onnx-community/gemma-3-270m-it-ONNX" data-dtype="q4">Gemma 3 270M</option>
                 </select>
                 <i class="f7-icons" style="font-size: 12px; opacity: 0.7;">chevron_down</i>
               </div>
@@ -325,7 +305,6 @@
           </div>
         </div>
 
-        <!-- Bottom Message Input Bar with Mic & Attachments -->
         <div class="toolbar messagebar">
           <div style="width: 100%;">
             <div id="attachment-preview">
@@ -333,13 +312,11 @@
               <a href="#" id="remove-attachment" style="margin-left: auto; color: #ff453a;"><i class="f7-icons" style="font-size: 16px;">xmark_circle_fill</i></a>
             </div>
             <div class="toolbar-inner">
-              <!-- File / Image Upload Button -->
               <label class="link icon-only" style="cursor: pointer; padding: 0 2px;" title="Attach File or Image">
                 <i class="f7-icons" style="font-size: 22px; opacity: 0.8;">paperclip</i>
                 <input type="file" id="file-input" style="display: none;" accept="image/*,.txt,.md,.json,.js,.html,.css" />
               </label>
 
-              <!-- Voice Input (Microphone Button - turns red when listening) -->
               <a href="#" class="link icon-only mic-btn" id="mic-btn" title="Speak to iChat" style="padding: 0 2px;">
                 <i class="f7-icons" style="font-size: 22px;">mic</i>
               </a>
@@ -354,7 +331,6 @@
           </div>
         </div>
 
-        <!-- Chat Messages Area -->
         <div class="page-content messages-content">
           <div id="welcome-screen" class="empty-state">
             <div class="siri-orb siri-orb-large"></div>
@@ -369,10 +345,8 @@
     </div>
   </div>
 
-  <!-- Framework7 v9 JS Bundle -->
   <script src="https://cdn.jsdelivr.net/npm/framework7@9.3.0/framework7-bundle.min.js"></script>
 
-  <!-- Transformers.js v4.3.2 + App Logic -->
   <script type="module">
     import { env, pipeline, TextStreamer } from "https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.2";
 
@@ -386,11 +360,10 @@
       darkMode: true,
     });
 
-    // --- Windows Vista Aurora Live Background Simulation ---
     const canvas = document.getElementById("aurora-canvas");
     const ctx = canvas.getContext("2d");
     let animationFrameId;
-    let time = 0;
+    let step = 0;
 
     function resizeCanvas() {
       canvas.width = window.innerWidth;
@@ -400,38 +373,38 @@
     resizeCanvas();
 
     function drawAurora() {
-      time += 0.003;
+      step += 0.008;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.globalCompositeOperation = 'screen';
 
-      const grad1 = ctx.createRadialGradient(
-        canvas.width * (0.3 + Math.sin(time) * 0.2),
-        canvas.height * (0.3 + Math.cos(time * 0.7) * 0.2),
-        50,
-        canvas.width * 0.5,
-        canvas.height * 0.5,
-        canvas.width * 0.8
-      );
-      grad1.addColorStop(0, "rgba(10, 132, 255, 0.35)");
-      grad1.addColorStop(0.5, "rgba(88, 86, 214, 0.25)");
-      grad1.addColorStop(1, "rgba(0, 0, 0, 0)");
+      for (let i = 0; i < 3; i++) {
+        ctx.beginPath();
+        ctx.moveTo(0, canvas.height * 0.5);
+        for (let x = 0; x < canvas.width; x += 30) {
+          let y = canvas.height * 0.4 + 
+                  Math.sin(x * 0.003 + step + i) * 120 + 
+                  Math.cos(x * 0.005 - step * 0.5) * 80 +
+                  Math.sin(step * 0.3) * 50;
+          ctx.lineTo(x, y);
+        }
+        ctx.lineTo(canvas.width, canvas.height);
+        ctx.lineTo(0, canvas.height);
+        ctx.closePath();
 
-      const grad2 = ctx.createRadialGradient(
-        canvas.width * (0.7 + Math.cos(time * 0.8) * 0.2),
-        canvas.height * (0.7 + Math.sin(time * 0.5) * 0.2),
-        80,
-        canvas.width * 0.5,
-        canvas.height * 0.5,
-        canvas.width * 0.9
-      );
-      grad2.addColorStop(0, "rgba(48, 209, 88, 0.3)");
-      grad2.addColorStop(0.5, "rgba(175, 82, 222, 0.25)");
-      grad2.addColorStop(1, "rgba(0, 0, 0, 0)");
-
-      ctx.fillStyle = grad1;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      ctx.fillStyle = grad2;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+        let grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+        if (i === 0) {
+          grad.addColorStop(0, "rgba(10, 132, 255, 0.3)");
+          grad.addColorStop(1, "rgba(48, 209, 88, 0.0)");
+        } else if (i === 1) {
+          grad.addColorStop(0, "rgba(175, 82, 222, 0.3)");
+          grad.addColorStop(1, "rgba(10, 132, 255, 0.0)");
+        } else {
+          grad.addColorStop(0, "rgba(50, 215, 75, 0.25)");
+          grad.addColorStop(1, "rgba(88, 86, 214, 0.0)");
+        }
+        ctx.fillStyle = grad;
+        ctx.fill();
+      }
 
       animationFrameId = requestAnimationFrame(drawAurora);
     }
@@ -460,7 +433,6 @@
       }
     });
 
-    // --- Voice Support (Speech Recognition & Text-to-Speech) ---
     const ttsCheckbox = document.getElementById("tts-checkbox");
     const TTS_KEY = "ichat_tts_enabled";
     if (localStorage.getItem(TTS_KEY) === "false") {
@@ -535,7 +507,6 @@
           };
 
           recognitionInstance.onerror = (err) => {
-            console.error("Speech recognition error", err);
             isListening = false;
             micBtn.classList.remove("listening");
             promptInput.placeholder = "Ask iChat AI...";
@@ -543,7 +514,6 @@
 
           recognitionInstance.start();
         } catch (err) {
-          console.error("Failed to start speech recognition", err);
           isListening = false;
           micBtn.classList.remove("listening");
           promptInput.placeholder = "Ask iChat AI...";
@@ -551,7 +521,6 @@
       });
     }
 
-    // --- State & LocalStorage Management ---
     const STORAGE_KEY = "ichat_webgpu_threads_v1";
     const MODEL_PREF_KEY = "ichat_webgpu_selected_model";
     let threads = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
@@ -701,7 +670,6 @@
       return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     }
 
-    // --- File & Image Attachments ---
     fileInput.addEventListener("change", (e) => {
       const file = e.target.files[0];
       if (!file) return;
@@ -744,7 +712,6 @@
       createNewThread(true);
     });
 
-    // --- Load WebGPU Model ---
     async function loadSelectedModel() {
       if (!navigator.gpu) {
         statusEl.textContent = "WebGPU not supported in this browser";
@@ -797,7 +764,6 @@
       if (!isGenerating && !isLoadingModel) loadSelectedModel();
     });
 
-    // --- Send Message & Stream Inference ---
     async function handleSend() {
       let text = promptInput.value.trim();
       if ((!text && !currentAttachment) || !generator || isGenerating || isLoadingModel) return;
