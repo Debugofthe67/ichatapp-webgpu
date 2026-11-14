@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <title>iChat AI</title>
+  <!-- Framework7 v9 & Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/framework7@9.3.0/framework7-bundle.min.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/framework7-icons@5.0.5/css/framework7-icons.css" />
+  <!-- Marked.js for Markdown parsing -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="apple-touch-icon" href="https://ichatai.up.railway.app/static/icon.png">
+    <link rel="icon" type="image/x-icon" href="https://ichatai.up.railway.app/static/icon.png">
+  <style>
+    :root {
+      --siri-gradient: linear-gradient(135deg, #ff2d55, #af52de, #5856d6, #0a84ff, #30d158);
+    }
+
+    /* Windows Vista Aurora Live Background Canvas */
+    #aurora-canvas {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0;
+      transition: opacity 0.8s ease;
+    }
+    body.aurora-active #aurora-canvas {
+      opacity: 0.75;
+    }
+
+    /* Ensure views sit above the canvas */
+    #app, .view, .page {
+      background: transparent !important;
+    }
+    .page-content {
+      background: transparent !important;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Animated Siri Edge Glow during generation */
+    .page-content::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 999;
+      padding: 3px;
+      background: var(--siri-gradient);
+      background-size: 300% 300%;
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      opacity: 0;
+      transition: opacity 0.35s ease;
+    }
+    body.is-generating .page-content::before {
+      opacity: 1;
+      animation: siriGlow 3s ease infinite;
+    }
+    @keyframes siriGlow {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    /* Siri Orb Avatar */
+    .siri-orb {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--siri-gradient);
+      background-size: 200% 200%;
+      animation: siriGlow 4s ease infinite;
+      box-shadow: 0 0 12px rgba(175, 82, 222, 0.65);
+      display: inline-block;
+      flex-shrink: 0;
+    }
+    .siri-orb-large {
+      width: 68px;
+      height: 68px;
+      margin: 0 auto 14px;
+      box-shadow: 0 0 28px rgba(175, 82, 222, 0.7);
+    }
+
+    /* Model Dropdown in Navbar */
+    .model-select-wrapper {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(120, 120, 128, 0.24);
+      padding: 4px 10px;
+      border-radius: 999px;
+    }
+    .model-select {
+      appearance: none;
+      -webkit-appearance: none;
+      background: transparent;
+      border: none;
+      color: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      outline: none;
+      padding-right: 4px;
+    }
+    .model-select option {
+      background: #1c1c1e;
+      color: #ffffff;
+    }
+
+    /* Message Bubbles & Markdown Styling */
+    .message-sent .message-bubble {
+      background: linear-gradient(135deg, #0a84ff, #5856d6) !important;
+      color: #ffffff !important;
+    }
+    .message-received .message-bubble {
+      background: rgba(44, 44, 46, 0.85);
+      backdrop-filter: blur(12px);
+      color: #f2f2f7 !important;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .message-text pre {
+      background: #1e1e1e;
+      padding: 8px;
+      border-radius: 6px;
+      overflow-x: auto;
+    }
+    .message-text code {
+      font-family: monospace;
+      font-size: 0.9em;
+    }
+    .message-text img {
+      max-width: 100%;
+      border-radius: 8px;
+      margin-top: 6px;
+    }
+
+    /* Attachment Preview Bar */
+    #attachment-preview {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      background: rgba(255, 255, 255, 0.08);
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      font-size: 13px;
+    }
+    #attachment-preview img {
+      width: 32px;
+      height: 32px;
+      object-fit: cover;
+      border-radius: 4px;
+    }
+
+    /* Empty Welcome State */
+    .empty-state {
+      text-align: center;
+      padding: 64px 24px 20px;
+    }
+    .empty-state h2 {
+      font-weight: 600;
+      margin: 8px 0 6px;
+      font-size: 22px;
+    }
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      padding: 5px 14px;
+      border-radius: 999px;
+      background: rgba(120, 120, 128, 0.2);
+      margin-top: 12px;
+    }
+
+    /* Sidebar Thread List */
+    .thread-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+    }
+    .thread-title {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 175px;
+      font-size: 14px;
+    }
+    .delete-thread-btn {
+      color: #ff453a;
+      padding: 4px 8px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body class="dark">
+  <!-- Windows Vista Aurora Live Background Canvas -->
+  <canvas id="aurora-canvas"></canvas>
+
+  <div id="app">
+    <!-- Left Sidebar Panel: Settings & Conversations -->
+    <div class="panel panel-left panel-cover panel-init">
+      <div class="view">
+        <div class="page">
+          <div class="navbar">
+            <div class="navbar-bg"></div>
+            <div class="navbar-inner">
+              <div class="title">Settings & Chats</div>
+            </div>
+          </div>
+          <div class="page-content">
+            <!-- Aurora Live Background Toggle -->
+            <div class="list inset strong">
+              <ul>
+                <li>
+                  <div class="item-content">
+                    <div class="item-inner">
+                      <div class="item-title">Windows Vista Aurora BG</div>
+                      <div class="item-after">
+                        <label class="toggle toggle-init" id="aurora-toggle">
+                          <input type="checkbox" id="aurora-checkbox" checked />
+                          <span class="toggle-icon"></span>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </li>
+              </ul>
+            </div>
+
+            <div class="block-title" style="display: flex; justify-content: space-between; align-items: center;">
+              <span>Recent Threads</span>
+              <a href="#" class="link" id="new-thread-btn" style="font-size: 13px;"><i class="f7-icons" style="font-size: 14px;">plus</i> New</a>
+            </div>
+            <div class="list inset strong">
+              <ul id="thread-list"></ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Chat View -->
+    <div class="view view-main view-init">
+      <div class="page">
+        <!-- Top Navigation Bar -->
+        <div class="navbar">
+          <div class="navbar-bg"></div>
+          <div class="navbar-inner">
+            <div class="left">
+              <a href="#" class="link icon-only panel-open" data-panel="left">
+                <i class="f7-icons">sidebar_left</i>
+              </a>
+            </div>
+
+            <div class="title">
+              <div class="model-select-wrapper">
+                <span class="siri-orb"></span>
+                <select id="model-selector" class="model-select" aria-label="Select AI Model">
+                  <option value="onnx-community/gemma-3-270m-it-ONNX" data-dtype="q4">Gemma 3 270M (Fast)</option>
+                  <option value="onnx-community/gemma-3-1b-it-ONNX" data-dtype="q4">Gemma 3 1B (Smart)</option>
+                  <option value="HuggingFaceTB/SmolLM2-360M-Instruct" data-dtype="q4">SmolLM2 360M</option>
+                  <option value="onnx-community/Qwen2.5-0.5B-Instruct" data-dtype="q4">Qwen 2.5 0.5B</option>
+                </select>
+                <i class="f7-icons" style="font-size: 12px; opacity: 0.7;">chevron_down</i>
+              </div>
+            </div>
+
+            <div class="right">
+              <a href="#" class="link icon-only" id="header-new-thread-btn" title="New Chat">
+                <i class="f7-icons">plus_bubble</i>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom Message Input Bar with Attachments -->
+        <div class="toolbar messagebar">
+          <div style="width: 100%;">
+            <div id="attachment-preview">
+              <span id="attachment-name"></span>
+              <a href="#" id="remove-attachment" style="margin-left: auto; color: #ff453a;"><i class="f7-icons" style="font-size: 16px;">xmark_circle_fill</i></a>
+            </div>
+            <div class="toolbar-inner">
+              <!-- File / Image Upload Button -->
+              <label class="link icon-only" style="cursor: pointer; padding: 0 4px;" title="Attach File or Image">
+                <i class="f7-icons" style="font-size: 22px; opacity: 0.8;">paperclip</i>
+                <input type="file" id="file-input" style="display: none;" accept="image/*,.txt,.md,.json,.js,.html,.css" />
+              </label>
+
+              <div class="messagebar-area">
+                <textarea id="prompt-input" class="resizable" placeholder="Ask Siri Intelligence..."></textarea>
+              </div>
+              <a class="link icon-only disabled" id="send-btn" href="#">
+                <i class="f7-icons" style="font-size: 28px;">arrow_up_circle_fill</i>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Chat Messages Area -->
+        <div class="page-content messages-content">
+          <div id="welcome-screen" class="empty-state">
+            <div class="siri-orb siri-orb-large"></div>
+            <h2>How can I help you?</h2>
+            <p style="font-size: 14px; margin: 0;">WebGPU local inference + Aurora live background</p>
+            <div class="status-pill" id="model-status">Initializing WebGPU...</div>
+          </div>
+
+          <div class="messages" id="messages-container"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Framework7 v9 JS Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/framework7@9.3.0/framework7-bundle.min.js"></script>
+
+  <!-- Transformers.js v4.3.2 + App Logic -->
+  <script type="module">
+    import { env, pipeline, TextStreamer } from "https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.2";
+
+    env.backends.onnx.logLevel = "error";
+    env.useWasmCache = true;
+
+    const app = new Framework7({
+      el: "#app",
+      name: "Siri AI Aurora",
+      theme: "ios",
+      darkMode: true,
+    });
+
+    // --- Windows Vista Aurora Live Background Simulation ---
+    const canvas = document.getElementById("aurora-canvas");
+    const ctx = canvas.getContext("2d");
+    let animationFrameId;
+    let time = 0;
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener("resize", resizeCanvas);
+    resizeCanvas();
+
+    function drawAurora() {
+      time += 0.003;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Create dreamy translucent flowing waves
+      const grad1 = ctx.createRadialGradient(
+        canvas.width * (0.3 + Math.sin(time) * 0.2),
+        canvas.height * (0.3 + Math.cos(time * 0.7) * 0.2),
+        50,
+        canvas.width * 0.5,
+        canvas.height * 0.5,
+        canvas.width * 0.8
+      );
+      grad1.addColorStop(0, "rgba(10, 132, 255, 0.35)");
+      grad1.addColorStop(0.5, "rgba(88, 86, 214, 0.25)");
+      grad1.addColorStop(1, "rgba(0, 0, 0, 0)");
+
+      const grad2 = ctx.createRadialGradient(
+        canvas.width * (0.7 + Math.cos(time * 0.8) * 0.2),
+        canvas.height * (0.7 + Math.sin(time * 0.5) * 0.2),
+        80,
+        canvas.width * 0.5,
+        canvas.height * 0.5,
+        canvas.width * 0.9
+      );
+      grad2.addColorStop(0, "rgba(48, 209, 88, 0.3)");
+      grad2.addColorStop(0.5, "rgba(175, 82, 222, 0.25)");
+      grad2.addColorStop(1, "rgba(0, 0, 0, 0)");
+
+      ctx.fillStyle = grad1;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = grad2;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      animationFrameId = requestAnimationFrame(drawAurora);
+    }
+
+    // Aurora Toggle logic
+    const auroraCheckbox = document.getElementById("aurora-checkbox");
+    const AURORA_KEY = "siri_aurora_enabled";
+    const auroraSaved = localStorage.getItem(AURORA_KEY);
+    
+    if (auroraSaved === "false") {
+      auroraCheckbox.checked = false;
+      document.body.classList.remove("aurora-active");
+    } else {
+      auroraCheckbox.checked = true;
+      document.body.classList.add("aurora-active");
+      drawAurora();
+    }
+
+    auroraCheckbox.addEventListener("change", (e) => {
+      if (e.target.checked) {
+        document.body.classList.add("aurora-active");
+        drawAurora();
+        localStorage.setItem(AURORA_KEY, "true");
+      } else {
+        document.body.classList.remove("aurora-active");
+        cancelAnimationFrame(animationFrameId);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        localStorage.setItem(AURORA_KEY, "false");
+      }
+    });
+
+    // --- State & LocalStorage Management ---
+    const STORAGE_KEY = "siri_webgpu_threads_v3";
+    const MODEL_PREF_KEY = "siri_webgpu_selected_model";
+    let threads = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+    let activeThreadId = null;
+    let generator = null;
+    let currentLoadedModelId = null;
+    let isGenerating = false;
+    let isLoadingModel = false;
+    let currentAttachment = null; // { type: 'image'|'file', name: '', content: '' }
+
+    const statusEl = document.getElementById("model-status");
+    const messagesContainer = document.getElementById("messages-container");
+    const welcomeScreen = document.getElementById("welcome-screen");
+    const promptInput = document.getElementById("prompt-input");
+    const sendBtn = document.getElementById("send-btn");
+    const threadListEl = document.getElementById("thread-list");
+    const modelSelector = document.getElementById("model-selector");
+    const fileInput = document.getElementById("file-input");
+    const attachmentPreview = document.getElementById("attachment-preview");
+    const attachmentName = document.getElementById("attachment-name");
+
+    const savedModel = localStorage.getItem(MODEL_PREF_KEY);
+    if (savedModel && [...modelSelector.options].some((o) => o.value === savedModel)) {
+      modelSelector.value = savedModel;
+    }
+
+    function saveThreads() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(threads));
+      renderThreadList();
+    }
+
+    function createNewThread(switchToIt = true) {
+      const newThread = {
+        id: "thread_" + Date.now(),
+        title: "New Conversation",
+        updatedAt: Date.now(),
+        messages: [],
+      };
+      threads.unshift(newThread);
+      saveThreads();
+      if (switchToIt) loadThread(newThread.id);
+      return newThread;
+    }
+
+    function deleteThread(id, event) {
+      if (event) event.stopPropagation();
+      threads = threads.filter((t) => t.id !== id);
+      saveThreads();
+      if (activeThreadId === id) {
+        if (threads.length > 0) loadThread(threads[0].id);
+        else createNewThread(true);
+      }
+    }
+
+    function loadThread(id) {
+      activeThreadId = id;
+      const thread = threads.find((t) => t.id === id);
+      if (!thread) return;
+
+      messagesContainer.innerHTML = "";
+      if (thread.messages.length === 0) {
+        welcomeScreen.style.display = "block";
+      } else {
+        welcomeScreen.style.display = "none";
+        thread.messages.forEach((msg) => {
+          appendMessageBubble(msg.role, msg.content, msg.attachment);
+        });
+      }
+      renderThreadList();
+      scrollToBottom();
+    }
+
+    function renderThreadList() {
+      threadListEl.innerHTML = "";
+      if (threads.length === 0) {
+        threadListEl.innerHTML = `<li class="item-content"><div class="item-inner"><div class="item-title" style="opacity:0.6;">No recent threads</div></div></li>`;
+        return;
+      }
+
+      threads.forEach((thread) => {
+        const isActive = thread.id === activeThreadId;
+        const li = document.createElement("li");
+        li.innerHTML = `
+          <a href="#" class="item-link item-content" style="${isActive ? "background: rgba(10, 132, 255, 0.18);" : ""}">
+            <div class="item-inner">
+              <div class="thread-item">
+                <span class="thread-title" style="${isActive ? "color: #0a84ff; font-weight: 600;" : ""}">
+                  ${escapeHtml(thread.title)}
+                </span>
+                <span class="delete-thread-btn" data-id="${thread.id}" title="Delete Thread">
+                  <i class="f7-icons" style="font-size: 18px;">trash</i>
+                </span>
+              </div>
+            </div>
+          </a>
+        `;
+        li.querySelector("a").addEventListener("click", (e) => {
+          e.preventDefault();
+          loadThread(thread.id);
+          app.panel.close();
+        });
+        li.querySelector(".delete-thread-btn").addEventListener("click", (e) => {
+          e.preventDefault();
+          deleteThread(thread.id, e);
+        });
+        threadListEl.appendChild(li);
+      });
+    }
+
+    function appendMessageBubble(role, text, attachment) {
+      welcomeScreen.style.display = "none";
+      const isUser = role === "user";
+      const msgDiv = document.createElement("div");
+      msgDiv.className = `message ${isUser ? "message-sent" : "message-received"}`;
+
+      let attachmentHtml = "";
+      if (attachment) {
+        if (attachment.type === "image") {
+          attachmentHtml = `<div style="margin-bottom: 6px;"><img src="${attachment.content}" alt="Attachment" /></div>`;
+        } else if (attachment.type === "file") {
+          attachmentHtml = `<div style="font-size: 12px; opacity: 0.8; margin-bottom: 4px; padding: 4px 8px; background: rgba(0,0,0,0.2); border-radius: 4px;">📎 <b>${escapeHtml(attachment.name)}</b></div>`;
+        }
+      }
+
+      const renderedContent = isUser ? escapeHtml(text) : marked.parse(text || "");
+
+      msgDiv.innerHTML = `
+        <div class="message-content">
+          <div class="message-bubble">
+            ${attachmentHtml}
+            <div class="message-text">${renderedContent}</div>
+          </div>
+        </div>
+      `;
+      messagesContainer.appendChild(msgDiv);
+      scrollToBottom();
+      return msgDiv.querySelector(".message-text");
+    }
+
+    function scrollToBottom() {
+      const content = document.querySelector(".messages-content");
+      content.scrollTop = content.scrollHeight;
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    // --- File & Image Attachment Handling ---
+    fileInput.addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      if (file.type.startsWith("image/")) {
+        reader.onload = (event) => {
+          currentAttachment = { type: "image", name: file.name, content: event.target.result };
+          attachmentName.textContent = file.name;
+          attachmentPreview.style.display = "flex";
+        };
+        reader.readAsDataURL(file);
+      } else {
+        reader.onload = (event) => {
+          currentAttachment = { type: "file", name: file.name, content: event.target.result };
+          attachmentName.textContent = file.name;
+          attachmentPreview.style.display = "flex";
+        };
+        reader.readAsText(file);
+      }
+    });
+
+    document.getElementById("remove-attachment").addEventListener("click", (e) => {
+      e.preventDefault();
+      currentAttachment = null;
+      attachmentPreview.style.display = "none";
+      fileInput.value = "";
+    });
+
+    if (threads.length > 0) loadThread(threads[0].id);
+    else createNewThread(true);
+
+    document.getElementById("new-thread-btn").addEventListener("click", (e) => {
+      e.preventDefault();
+      createNewThread(true);
+      app.panel.close();
+    });
+    document.getElementById("header-new-thread-btn").addEventListener("click", (e) => {
+      e.preventDefault();
+      createNewThread(true);
+    });
+
+    // --- Load WebGPU Model ---
+    async function loadSelectedModel() {
+      if (!navigator.gpu) {
+        statusEl.textContent = "WebGPU not supported in this browser";
+        return;
+      }
+      const selectedOption = modelSelector.options[modelSelector.selectedIndex];
+      const modelId = selectedOption.value;
+      const dtype = selectedOption.dataset.dtype || "q4";
+      const label = selectedOption.text;
+
+      if (currentLoadedModelId === modelId && generator) return;
+
+      isLoadingModel = true;
+      sendBtn.classList.add("disabled");
+      modelSelector.disabled = true;
+
+      const loadingToast = app.toast.create({ text: `Loading ${label}...`, position: "top" });
+      loadingToast.open();
+      statusEl.textContent = `Loading ${label}...`;
+
+      try {
+        if (generator && typeof generator.dispose === "function") {
+          await generator.dispose();
+          generator = null;
+        }
+        generator = await pipeline("text-generation", modelId, {
+          device: "webgpu",
+          dtype,
+          progress_callback: (info) => {
+            if (info.status === "progress_total" || info.status === "progress") {
+              statusEl.textContent = `Downloading ${label}: ${Math.round(info.progress)}%`;
+            }
+          },
+        });
+        currentLoadedModelId = modelId;
+        localStorage.setItem(MODEL_PREF_KEY, modelId);
+        statusEl.textContent = `Ready • ${label}`;
+        sendBtn.classList.remove("disabled");
+      } catch (err) {
+        statusEl.textContent = `Error: ${err.message}`;
+        app.dialog.alert(err.message, "Model Load Failed");
+      } finally {
+        isLoadingModel = false;
+        modelSelector.disabled = false;
+        loadingToast.close();
+      }
+    }
+
+    modelSelector.addEventListener("change", () => {
+      if (!isGenerating && !isLoadingModel) loadSelectedModel();
+    });
+
+    // --- Send Message & Stream Inference ---
+    async function handleSend() {
+      let text = promptInput.value.trim();
+      if ((!text && !currentAttachment) || !generator || isGenerating || isLoadingModel) return;
+
+      const currentThread = threads.find((t) => t.id === activeThreadId);
+      if (!currentThread) return;
+
+      if (currentThread.messages.length === 0) {
+        currentThread.title = (text || currentAttachment.name).slice(0, 32);
+      }
+
+      let messagePayloadContent = text;
+      if (currentAttachment && currentAttachment.type === "file") {
+        messagePayloadContent = `[Attached File: ${currentAttachment.name}]\n\`\`\`\n${currentAttachment.content}\n\`\`\`\n\n${text}`;
+      }
+
+      const msgData = {
+        role: "user",
+        content: messagePayloadContent,
+        attachment: currentAttachment ? { type: currentAttachment.type, content: currentAttachment.content, name: currentAttachment.name } : null,
+      };
+
+      currentThread.messages.push(msgData);
+      currentThread.updatedAt = Date.now();
+      saveThreads();
+      appendMessageBubble("user", messagePayloadContent, msgData.attachment);
+
+      promptInput.value = "";
+      promptInput.style.height = "auto";
+      currentAttachment = null;
+      attachmentPreview.style.display = "none";
+      fileInput.value = "";
+
+      isGenerating = true;
+      sendBtn.classList.add("disabled");
+      modelSelector.disabled = true;
+      document.body.classList.add("is-generating");
+
+      const assistantTextEl = appendMessageBubble("assistant", "");
+      let fullResponse = "";
+
+      const conversationHistory = currentThread.messages.map((m) => ({
+        role: m.role,
+        content: m.content,
+      }));
+
+      const streamer = new TextStreamer(generator.tokenizer, {
+        skip_prompt: true,
+        skip_special_tokens: true,
+        callback_function: (token) => {
+          fullResponse += token;
+          assistantTextEl.innerHTML = marked.parse(fullResponse);
+          scrollToBottom();
+        },
+      });
+
+      try {
+        await generator(conversationHistory, {
+          max_new_tokens: 300,
+          do_sample: true,
+          temperature: 0.7,
+          streamer,
+        });
+        currentThread.messages.push({ role: "assistant", content: fullResponse.trim() });
+        saveThreads();
+      } catch (err) {
+        assistantTextEl.textContent = "Generation error: " + err.message;
+      } finally {
+        isGenerating = false;
+        sendBtn.classList.remove("disabled");
+        modelSelector.disabled = false;
+        document.body.classList.remove("is-generating");
+      }
+    }
+
+    sendBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      handleSend();
+    });
+    promptInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        handleSend();
+      }
+    });
+
+    loadSelectedModel();
+  </script>
+</body>
+</html>
