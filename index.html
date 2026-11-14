@@ -4,16 +4,29 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover" />
   <title>iChat AI</title>
-      <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black">
-    <meta name="apple-mobile-web-app-title" content="iChat AI">
+  <link rel="canonical" href="https://ichat6.2bd.net">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="iChat AI">
+  <meta name="description" content="iChatAI, but on device">
+  <meta name="keywords" content="ichat ai, debugofthe67, tp67, ichatapp">
+  <meta name="robots" content="index, follow">
   <!-- Framework7 v9 & Icons -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/framework7@9.3.0/framework7-bundle.min.css" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/framework7-icons@5.0.5/css/framework7-icons.css" />
   <!-- Marked.js for Markdown parsing -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <link rel="apple-touch-icon" href="https://ichatai.up.railway.app/static/icon.png">
-    <link rel="icon" type="image/x-icon" href="https://ichatai.up.railway.app/static/icon.png">
+  <link rel="apple-touch-icon" href="https://ichatai.up.railway.app/static/icon.png">
+  <link rel="icon" type="image/x-icon" href="https://ichatai.up.railway.app/static/icon.png">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "url": "https://ichat6.2bd.net",
+    "name": "iChatAI W",
+    "alternateName": "iChat AI WebGPU"
+  }
+  </script>
   <style>
     :root {
       --siri-gradient: linear-gradient(135deg, #ff2d55, #af52de, #5856d6, #0a84ff, #30d158);
@@ -34,7 +47,6 @@
       opacity: 0.75;
     }
 
-    /* Ensure views sit above the canvas */
     #app, .view, .page {
       background: transparent !important;
     }
@@ -44,7 +56,7 @@
       z-index: 1;
     }
 
-    /* Animated Siri Edge Glow during generation */
+    /* Animated iChat Edge Glow during generation */
     .page-content::before {
       content: "";
       position: fixed;
@@ -70,7 +82,7 @@
       100% { background-position: 0% 50%; }
     }
 
-    /* Siri Orb Avatar */
+    /* Orb Avatar */
     .siri-orb {
       width: 24px;
       height: 24px;
@@ -87,6 +99,17 @@
       height: 68px;
       margin: 0 auto 14px;
       box-shadow: 0 0 28px rgba(175, 82, 222, 0.7);
+    }
+
+    /* Listening state for mic button */
+    .mic-btn.listening {
+      color: #ff2d55 !important;
+      animation: micPulse 1.2s infinite;
+    }
+    @keyframes micPulse {
+      0% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.15); opacity: 0.7; }
+      100% { transform: scale(1); opacity: 1; }
     }
 
     /* Model Dropdown in Navbar */
@@ -115,7 +138,7 @@
       color: #ffffff;
     }
 
-    /* Message Bubbles & Markdown Styling */
+    /* Message Bubbles & Markdown */
     .message-sent .message-bubble {
       background: linear-gradient(135deg, #0a84ff, #5856d6) !important;
       color: #ffffff !important;
@@ -213,20 +236,34 @@
           <div class="navbar">
             <div class="navbar-bg"></div>
             <div class="navbar-inner">
-              <div class="title">Settings & Chats</div>
+              <div class="title">iChat Settings</div>
             </div>
           </div>
           <div class="page-content">
-            <!-- Aurora Live Background Toggle -->
             <div class="list inset strong">
               <ul>
+                <!-- Aurora Live BG Toggle -->
                 <li>
                   <div class="item-content">
                     <div class="item-inner">
-                      <div class="item-title">Windows Vista Aurora BG</div>
+                      <div class="item-title"> Live BG</div>
                       <div class="item-after">
                         <label class="toggle toggle-init" id="aurora-toggle">
                           <input type="checkbox" id="aurora-checkbox" checked />
+                          <span class="toggle-icon"></span>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </li>
+                <!-- Voice Read Aloud Toggle -->
+                <li>
+                  <div class="item-content">
+                    <div class="item-inner">
+                      <div class="item-title">Speak Answers Aloud (TTS)</div>
+                      <div class="item-after">
+                        <label class="toggle toggle-init" id="tts-toggle">
+                          <input type="checkbox" id="tts-checkbox" checked />
                           <span class="toggle-icon"></span>
                         </label>
                       </div>
@@ -282,7 +319,7 @@
           </div>
         </div>
 
-        <!-- Bottom Message Input Bar with Attachments -->
+        <!-- Bottom Message Input Bar with Mic & Attachments -->
         <div class="toolbar messagebar">
           <div style="width: 100%;">
             <div id="attachment-preview">
@@ -291,13 +328,18 @@
             </div>
             <div class="toolbar-inner">
               <!-- File / Image Upload Button -->
-              <label class="link icon-only" style="cursor: pointer; padding: 0 4px;" title="Attach File or Image">
+              <label class="link icon-only" style="cursor: pointer; padding: 0 2px;" title="Attach File or Image">
                 <i class="f7-icons" style="font-size: 22px; opacity: 0.8;">paperclip</i>
                 <input type="file" id="file-input" style="display: none;" accept="image/*,.txt,.md,.json,.js,.html,.css" />
               </label>
 
+              <!-- Voice Input (Microphone Button) -->
+              <a href="#" class="link icon-only mic-btn" id="mic-btn" title="Speak to iChat" style="padding: 0 2px; color: inherit;">
+                <i class="f7-icons" style="font-size: 22px;">mic</i>
+              </a>
+
               <div class="messagebar-area">
-                <textarea id="prompt-input" class="resizable" placeholder="Ask Siri Intelligence..."></textarea>
+                <textarea id="prompt-input" class="resizable" placeholder="Ask iChat AI..."></textarea>
               </div>
               <a class="link icon-only disabled" id="send-btn" href="#">
                 <i class="f7-icons" style="font-size: 28px;">arrow_up_circle_fill</i>
@@ -311,7 +353,7 @@
           <div id="welcome-screen" class="empty-state">
             <div class="siri-orb siri-orb-large"></div>
             <h2>How can I help you?</h2>
-            <p style="font-size: 14px; margin: 0;">WebGPU local inference + Aurora live background</p>
+            <p style="font-size: 14px; margin: 0;">On-device WebGPU AI with Voice</p>
             <div class="status-pill" id="model-status">Initializing WebGPU...</div>
           </div>
 
@@ -333,7 +375,7 @@
 
     const app = new Framework7({
       el: "#app",
-      name: "Siri AI Aurora",
+      name: "iChat AI",
       theme: "ios",
       darkMode: true,
     });
@@ -355,7 +397,6 @@
       time += 0.003;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Create dreamy translucent flowing waves
       const grad1 = ctx.createRadialGradient(
         canvas.width * (0.3 + Math.sin(time) * 0.2),
         canvas.height * (0.3 + Math.cos(time * 0.7) * 0.2),
@@ -389,12 +430,9 @@
       animationFrameId = requestAnimationFrame(drawAurora);
     }
 
-    // Aurora Toggle logic
     const auroraCheckbox = document.getElementById("aurora-checkbox");
-    const AURORA_KEY = "siri_aurora_enabled";
-    const auroraSaved = localStorage.getItem(AURORA_KEY);
-    
-    if (auroraSaved === "false") {
+    const AURORA_KEY = "ichat_aurora_enabled";
+    if (localStorage.getItem(AURORA_KEY) === "false") {
       auroraCheckbox.checked = false;
       document.body.classList.remove("aurora-active");
     } else {
@@ -416,21 +454,105 @@
       }
     });
 
+    // --- Voice Support (Speech Recognition & Text-to-Speech) ---
+    const ttsCheckbox = document.getElementById("tts-checkbox");
+    const TTS_KEY = "ichat_tts_enabled";
+    if (localStorage.getItem(TTS_KEY) === "false") {
+      ttsCheckbox.checked = false;
+    }
+    ttsCheckbox.addEventListener("change", (e) => {
+      localStorage.setItem(TTS_KEY, e.target.checked ? "true" : "false");
+      if (!e.target.checked && window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+    });
+
+    function speakText(text) {
+      if (!ttsCheckbox.checked || !window.speechSynthesis) return;
+      window.speechSynthesis.cancel(); // Stop any ongoing speech
+      // Strip markdown syntax for natural speech
+      const cleanText = text.replace(/[*_`#\[\]()]/g, "");
+      const utterance = new SpeechSynthesisUtterance(cleanText);
+      utterance.rate = 1.0;
+      utterance.pitch = 1.0;
+      window.speechSynthesis.speak(utterance);
+    }
+
+    const micBtn = document.getElementById("mic-btn");
+    const promptInput = document.getElementById("prompt-input");
+
+    let recognition = null;
+    let isListening = false;
+
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      micBtn.style.opacity = "0.4";
+      micBtn.title = "Speech recognition not supported in this browser";
+    } else {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = true;
+      recognition.lang = 'en-US';
+
+      recognition.onstart = () => {
+        isListening = true;
+        micBtn.classList.add("listening");
+        promptInput.placeholder = "Listening... pause to finish";
+      };
+
+      recognition.onresult = (event) => {
+        let transcript = "";
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          transcript += event.results[i][0].transcript;
+        }
+        promptInput.value = transcript;
+      };
+
+      recognition.onend = () => {
+        isListening = false;
+        micBtn.classList.remove("listening");
+        promptInput.placeholder = "Ask iChat AI...";
+        if (promptInput.value.trim().length > 0) {
+          handleSend(); // Automatically send after user pauses speaking
+        }
+      };
+
+      recognition.onerror = (err) => {
+        console.error("Speech recognition error", err);
+        isListening = false;
+        micBtn.classList.remove("listening");
+        promptInput.placeholder = "Ask iChat AI...";
+      };
+
+      micBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        if (isListening) {
+          recognition.stop();
+        } else {
+          try {
+            if (window.speechSynthesis) window.speechSynthesis.cancel();
+            recognition.start();
+          } catch (err) {
+            console.error(err);
+          }
+        }
+      });
+    }
+
     // --- State & LocalStorage Management ---
-    const STORAGE_KEY = "siri_webgpu_threads_v3";
-    const MODEL_PREF_KEY = "siri_webgpu_selected_model";
+    const STORAGE_KEY = "ichat_webgpu_threads_v1";
+    const MODEL_PREF_KEY = "ichat_webgpu_selected_model";
     let threads = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
     let activeThreadId = null;
     let generator = null;
     let currentLoadedModelId = null;
     let isGenerating = false;
     let isLoadingModel = false;
-    let currentAttachment = null; // { type: 'image'|'file', name: '', content: '' }
+    let currentAttachment = null;
 
     const statusEl = document.getElementById("model-status");
     const messagesContainer = document.getElementById("messages-container");
     const welcomeScreen = document.getElementById("welcome-screen");
-    const promptInput = document.getElementById("prompt-input");
     const sendBtn = document.getElementById("send-btn");
     const threadListEl = document.getElementById("thread-list");
     const modelSelector = document.getElementById("model-selector");
@@ -449,6 +571,7 @@
     }
 
     function createNewThread(switchToIt = true) {
+      if (window.speechSynthesis) window.speechSynthesis.cancel();
       const newThread = {
         id: "thread_" + Date.now(),
         title: "New Conversation",
@@ -472,6 +595,7 @@
     }
 
     function loadThread(id) {
+      if (window.speechSynthesis) window.speechSynthesis.cancel();
       activeThreadId = id;
       const thread = threads.find((t) => t.id === id);
       if (!thread) return;
@@ -565,7 +689,7 @@
       return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     }
 
-    // --- File & Image Attachment Handling ---
+    // --- File & Image Attachments ---
     fileInput.addEventListener("change", (e) => {
       const file = e.target.files[0];
       if (!file) return;
@@ -666,6 +790,8 @@
       let text = promptInput.value.trim();
       if ((!text && !currentAttachment) || !generator || isGenerating || isLoadingModel) return;
 
+      if (window.speechSynthesis) window.speechSynthesis.cancel();
+
       const currentThread = threads.find((t) => t.id === activeThreadId);
       if (!currentThread) return;
 
@@ -727,6 +853,9 @@
         });
         currentThread.messages.push({ role: "assistant", content: fullResponse.trim() });
         saveThreads();
+
+        // Speak answer aloud when done speaking / generating
+        speakText(fullResponse.trim());
       } catch (err) {
         assistantTextEl.textContent = "Generation error: " + err.message;
       } finally {
