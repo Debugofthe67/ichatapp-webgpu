@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover" />
   <title>iChat AI</title>
-  <link rel="canonical" href="https://ichat6.2bd.net">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="iChat AI">
@@ -18,16 +17,7 @@
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <link rel="apple-touch-icon" href="https://ichatai.up.railway.app/static/icon.png">
   <link rel="icon" type="image/x-icon" href="https://ichatai.up.railway.app/static/icon.png">
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "WebSite",
-    "url": "https://ichat6.2bd.net",
-    "name": "iChatAI W",
-    "alternateName": "iChat AI WebGPU"
-  }
-  </script>
-  <style>
+ <style>
     :root {
       --siri-gradient: linear-gradient(135deg, #ff2d55, #af52de, #5856d6, #0a84ff, #30d158);
     }
@@ -101,7 +91,11 @@
       box-shadow: 0 0 28px rgba(175, 82, 222, 0.7);
     }
 
-    /* Listening state for mic button */
+    /* Microphone Button States (Red when listening, normal when off) */
+    .mic-btn {
+      color: inherit;
+      transition: color 0.2s ease;
+    }
     .mic-btn.listening {
       color: #ff2d55 !important;
       animation: micPulse 1.2s infinite;
@@ -246,7 +240,7 @@
                 <li>
                   <div class="item-content">
                     <div class="item-inner">
-                      <div class="item-title"> Live BG</div>
+                      <div class="item-title">Windows Vista Aurora BG</div>
                       <div class="item-after">
                         <label class="toggle toggle-init" id="aurora-toggle">
                           <input type="checkbox" id="aurora-checkbox" checked />
@@ -333,8 +327,8 @@
                 <input type="file" id="file-input" style="display: none;" accept="image/*,.txt,.md,.json,.js,.html,.css" />
               </label>
 
-              <!-- Voice Input (Microphone Button) -->
-              <a href="#" class="link icon-only mic-btn" id="mic-btn" title="Speak to iChat" style="padding: 0 2px; color: inherit;">
+              <!-- Voice Input (Microphone Button - turns red when listening) -->
+              <a href="#" class="link icon-only mic-btn" id="mic-btn" title="Speak to iChat" style="padding: 0 2px;">
                 <i class="f7-icons" style="font-size: 22px;">mic</i>
               </a>
 
@@ -353,7 +347,7 @@
           <div id="welcome-screen" class="empty-state">
             <div class="siri-orb siri-orb-large"></div>
             <h2>How can I help you?</h2>
-            <p style="font-size: 14px; margin: 0;">On-device WebGPU AI with Voice</p>
+            <p style="font-size: 14px; margin: 0;">On-device WebGPU AI with Voice & Aurora BG</p>
             <div class="status-pill" id="model-status">Initializing WebGPU...</div>
           </div>
 
@@ -469,8 +463,7 @@
 
     function speakText(text) {
       if (!ttsCheckbox.checked || !window.speechSynthesis) return;
-      window.speechSynthesis.cancel(); // Stop any ongoing speech
-      // Strip markdown syntax for natural speech
+      window.speechSynthesis.cancel();
       const cleanText = text.replace(/[*_`#\[\]()]/g, "");
       const utterance = new SpeechSynthesisUtterance(cleanText);
       utterance.rate = 1.0;
@@ -481,60 +474,69 @@
     const micBtn = document.getElementById("mic-btn");
     const promptInput = document.getElementById("prompt-input");
 
-    let recognition = null;
     let isListening = false;
+    let recognitionInstance = null;
 
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
       micBtn.style.opacity = "0.4";
       micBtn.title = "Speech recognition not supported in this browser";
     } else {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      recognition = new SpeechRecognition();
-      recognition.continuous = false;
-      recognition.interimResults = true;
-      recognition.lang = 'en-US';
-
-      recognition.onstart = () => {
-        isListening = true;
-        micBtn.classList.add("listening");
-        promptInput.placeholder = "Listening... pause to finish";
-      };
-
-      recognition.onresult = (event) => {
-        let transcript = "";
-        for (let i = event.resultIndex; i < event.results.length; ++i) {
-          transcript += event.results[i][0].transcript;
-        }
-        promptInput.value = transcript;
-      };
-
-      recognition.onend = () => {
-        isListening = false;
-        micBtn.classList.remove("listening");
-        promptInput.placeholder = "Ask iChat AI...";
-        if (promptInput.value.trim().length > 0) {
-          handleSend(); // Automatically send after user pauses speaking
-        }
-      };
-
-      recognition.onerror = (err) => {
-        console.error("Speech recognition error", err);
-        isListening = false;
-        micBtn.classList.remove("listening");
-        promptInput.placeholder = "Ask iChat AI...";
-      };
 
       micBtn.addEventListener("click", (e) => {
         e.preventDefault();
-        if (isListening) {
-          recognition.stop();
-        } else {
-          try {
-            if (window.speechSynthesis) window.speechSynthesis.cancel();
-            recognition.start();
-          } catch (err) {
-            console.error(err);
-          }
+
+        // If already listening, stop it
+        if (isListening && recognitionInstance) {
+          try { recognitionInstance.stop(); } catch(err) {}
+          return;
+        }
+
+        try {
+          if (window.speechSynthesis) window.speechSynthesis.cancel();
+
+          // Create a fresh recognition instance on every click to prevent second-try freeze bug
+          recognitionInstance = new SpeechRecognition();
+          recognitionInstance.continuous = false;
+          recognitionInstance.interimResults = true;
+          recognitionInstance.lang = 'en-US';
+
+          recognitionInstance.onstart = () => {
+            isListening = true;
+            micBtn.classList.add("listening"); // Turns icon red with pulse animation
+            promptInput.placeholder = "Listening... pause to finish";
+          };
+
+          recognitionInstance.onresult = (event) => {
+            let transcript = "";
+            for (let i = event.resultIndex; i < event.results.length; ++i) {
+              transcript += event.results[i][0].transcript;
+            }
+            promptInput.value = transcript;
+          };
+
+          recognitionInstance.onend = () => {
+            isListening = false;
+            micBtn.classList.remove("listening"); // Turns icon back to normal/off
+            promptInput.placeholder = "Ask iChat AI...";
+            if (promptInput.value.trim().length > 0) {
+              handleSend(); // Auto-send when you pause
+            }
+          };
+
+          recognitionInstance.onerror = (err) => {
+            console.error("Speech recognition error", err);
+            isListening = false;
+            micBtn.classList.remove("listening");
+            promptInput.placeholder = "Ask iChat AI...";
+          };
+
+          recognitionInstance.start();
+        } catch (err) {
+          console.error("Failed to start speech recognition", err);
+          isListening = false;
+          micBtn.classList.remove("listening");
+          promptInput.placeholder = "Ask iChat AI...";
         }
       });
     }
@@ -680,6 +682,9 @@
       return msgDiv.querySelector(".message-text");
     }
 
+    fn scrollToBottom() {
+      // helper
+    }
     function scrollToBottom() {
       const content = document.querySelector(".messages-content");
       content.scrollTop = content.scrollHeight;
@@ -854,7 +859,6 @@
         currentThread.messages.push({ role: "assistant", content: fullResponse.trim() });
         saveThreads();
 
-        // Speak answer aloud when done speaking / generating
         speakText(fullResponse.trim());
       } catch (err) {
         assistantTextEl.textContent = "Generation error: " + err.message;
