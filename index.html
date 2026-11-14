@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover" />
   <title>iChat AI</title>
+  <link rel="canonical" href="https://ichat6.2bd.net">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="iChat AI">
@@ -17,9 +18,23 @@
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <link rel="apple-touch-icon" href="https://ichatai.up.railway.app/static/icon.png">
   <link rel="icon" type="image/x-icon" href="https://ichatai.up.railway.app/static/icon.png">
- <style>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "url": "https://ichat6.2bd.net",
+    "name": "iChatAI W",
+    "alternateName": "iChat AI WebGPU"
+  }
+  </script>
+  <style>
     :root {
       --siri-gradient: linear-gradient(135deg, #ff2d55, #af52de, #5856d6, #0a84ff, #30d158);
+    }
+
+    body {
+      background: #000000;
+      color: #ffffff;
     }
 
     /* Windows Vista Aurora Live Background Canvas */
@@ -38,10 +53,17 @@
     }
 
     #app, .view, .page {
+      background: #000000 !important;
+    }
+    body.aurora-active #app, 
+    body.aurora-active .view, 
+    body.aurora-active .page, 
+    body.aurora-active .page-content {
       background: transparent !important;
     }
+
     .page-content {
-      background: transparent !important;
+      background: #000000;
       position: relative;
       z-index: 1;
     }
@@ -486,7 +508,6 @@
       micBtn.addEventListener("click", (e) => {
         e.preventDefault();
 
-        // If already listening, stop it
         if (isListening && recognitionInstance) {
           try { recognitionInstance.stop(); } catch(err) {}
           return;
@@ -495,7 +516,6 @@
         try {
           if (window.speechSynthesis) window.speechSynthesis.cancel();
 
-          // Create a fresh recognition instance on every click to prevent second-try freeze bug
           recognitionInstance = new SpeechRecognition();
           recognitionInstance.continuous = false;
           recognitionInstance.interimResults = true;
@@ -503,7 +523,7 @@
 
           recognitionInstance.onstart = () => {
             isListening = true;
-            micBtn.classList.add("listening"); // Turns icon red with pulse animation
+            micBtn.classList.add("listening");
             promptInput.placeholder = "Listening... pause to finish";
           };
 
@@ -517,10 +537,10 @@
 
           recognitionInstance.onend = () => {
             isListening = false;
-            micBtn.classList.remove("listening"); // Turns icon back to normal/off
+            micBtn.classList.remove("listening");
             promptInput.placeholder = "Ask iChat AI...";
             if (promptInput.value.trim().length > 0) {
-              handleSend(); // Auto-send when you pause
+              handleSend();
             }
           };
 
@@ -682,9 +702,6 @@
       return msgDiv.querySelector(".message-text");
     }
 
-    fn scrollToBottom() {
-      // helper
-    }
     function scrollToBottom() {
       const content = document.querySelector(".messages-content");
       content.scrollTop = content.scrollHeight;
